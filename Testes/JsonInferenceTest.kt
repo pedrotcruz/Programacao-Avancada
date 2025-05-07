@@ -63,14 +63,12 @@ class JsonInferenceTest {
             e = emptyList()
         )
 
-        // Alteração aqui também
         val json = obj.inferToJson() as JsonObject
         assertEquals(JsonNull, json.properties["d"])
     }
 
     @Test
     fun `test primitive types`() {
-        // Novos testes para tipos básicos
         assertEquals(JsonString("test"), "test".inferToJson())
         assertEquals(JsonNumber(123), 123.inferToJson())
         assertEquals(JsonBoolean(true), true.inferToJson())

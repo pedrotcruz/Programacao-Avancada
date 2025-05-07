@@ -1,4 +1,3 @@
-import Model.*
 import Model.JsonValue.Companion.inferToJson
 import Visitors.*
 
@@ -69,7 +68,7 @@ fun main() {
 
     // 2. Show formatted JSON
     println("\n=== JSON Formatado ===")
-    json.accept(PrettyPrintVisitor())
+    json.accept(JsonPrintVisitor())
 
     // 3. Validate structure
     println("\n=== Validação ===")
