@@ -30,7 +30,7 @@ class JsonPrintVisitor : JsonVisitor {
         indentLevel++
         arr.elements.forEachIndexed { index, element ->
             print(currentIndent())
-            element.accept(this)
+            element.accept(this) // Propagação AQUI
             if (index < arr.elements.size - 1) println(",") else println()
         }
         indentLevel--

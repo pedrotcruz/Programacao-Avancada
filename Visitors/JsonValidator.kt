@@ -3,13 +3,18 @@ package Visitors
 import Model.*
 
 /**
- * Visitor that validates JSON structure, checking for:
- * - Empty keys
- * - Duplicate keys in objects
+ * Visitor that validates JSON structure by checking for:
+ * - Empty keys in objects
+ *
+ * Usage:
+ * val validator = JsonValidator()
+ * json.accept(validator)
+ * if (!validator.isValid()) {
+ *     println(validator.getErrors())
+ * }
  */
 class JsonValidator : JsonVisitor {
     private val errors = mutableListOf<String>()
-    private val keyStack = mutableListOf<MutableSet<String>>()
 
     /**
      * Checks if the JSON structure is valid.
@@ -24,21 +29,12 @@ class JsonValidator : JsonVisitor {
     fun getErrors(): List<String> = errors.toList()
 
     override fun visit(obj: JsonObject) {
-        val currentKeys = mutableSetOf<String>()
-        keyStack.add(currentKeys)
-
         obj.properties.forEach { (key, value) ->
-            when {
-                key.isEmpty() -> errors.add("Empty key found")
-                currentKeys.contains(key) -> errors.add("Duplicate key found: '$key'")
-                else -> {
-                    currentKeys.add(key)
-                    value.accept(this)
-                }
+            if (key.isEmpty()) {
+                errors.add("Empty key found")
             }
+            value.accept(this)
         }
-
-        keyStack.removeAt(keyStack.size - 1)
     }
 
     override fun visit(arr: JsonArray) = arr.elements.forEach { it.accept(this) }

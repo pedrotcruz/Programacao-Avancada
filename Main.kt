@@ -1,5 +1,9 @@
+import Framework.GetJson
+import Framework.GetMapping
+import Framework.RestController
 import Model.JsonValue.Companion.inferToJson
 import Visitors.*
+import java.net.BindException
 
 /**
  * Example enum representing evaluation types in a course.
@@ -76,4 +80,51 @@ fun main() {
     json.accept(validator)
     println("Válido? ${validator.isValid()}")
     validator.getErrors().forEach { println("Erro: $it") }
+
+
+    // Inicia o servidor
+    println("🟢 Starting server at http://localhost:8080")
+    try {
+        GetJson(
+            CourseController(),
+            AnotherController()
+        ).start(8080)
+    } catch (e: BindException) {
+        println("🔴 Port 8080 already in use. Kill the process or wait.")
+    } catch (e: Exception) {
+        println("🔴 Failed to start: ${e.javaClass.simpleName}: ${e.message}")
+    }
+}
+
+// Controller de exemplo
+@RestController("courses")
+class CourseController {
+    @GetMapping("all")
+    fun getAllCourses(): List<Course> = listOf(
+        Course("Programação Avançada", 6, listOf(
+            EvalItem("Teste", 0.4, true, EvalType.TEST),
+            EvalItem("Projeto", 0.6, true, EvalType.PROJECT)
+        )),
+        Course("Sistemas Operativos", 6, listOf(
+            EvalItem("Exame", 1.0, true, EvalType.EXAM)
+        ))
+    )
+
+    @GetMapping("info")
+    fun getCourseInfo() = mapOf(
+        "version" to "1.0",
+        "author" to "Seu Nome"
+    )
+}
+
+@RestController("api")
+class AnotherController {
+    @GetMapping("status")
+    fun status() = "Server is running"
+
+    @GetMapping("/")
+    fun root() = mapOf(
+        "service" to "GetJson API",
+        "endpoints" to listOf("/status", "/courses/all")
+    )
 }

@@ -1,14 +1,12 @@
 package Model
 
-import kotlin.reflect.KClass
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 
 /**
- * Sealed class representing a JSON value.
+ * Sealed class representing all valid JSON value types.
  *
- * This is the base class for all JSON types in the library, following the
- * Visitor pattern for operations.
+ * This is the core class of the JSON library, following the Visitor pattern
+ * for structure traversal and operations.
  */
 sealed class JsonValue {
     /**
@@ -18,24 +16,29 @@ sealed class JsonValue {
     abstract fun accept(visitor: JsonVisitor)
 
     /**
-     * Converts this JSON value to its string representation.
+     * Converts this JSON value to its standard JSON string representation.
      * @return The JSON-formatted string
      */
     abstract fun toJsonString(): String
 
     companion object {
         /**
-         * Creates a JsonValue from any Kotlin object.
+         * Creates a JsonValue from any Kotlin object using reflection.
          * @param value The nullable input value to convert
          * @return The corresponding JsonValue representation
+         * @throws IllegalArgumentException for unsupported types
          */
         fun from(value: Any?): JsonValue = value.inferToJson()
 
         /**
-         * Extension function to convert any Kotlin object to JsonValue.
-         * Supports primitive types, collections, enums, and data classes.
-         * @return The JsonValue representation of this object
-         * @throws IllegalArgumentException for unsupported types
+         * Extension function to convert Kotlin objects to JsonValue.
+         * Supports:
+         * - Primitives (Int, Double, Boolean, String)
+         * - Collections
+         * - Enums
+         * - Null values
+         * - Data classes
+         * - Maps with String keys
          */
         fun Any?.inferToJson(): JsonValue {
             return when (this) {
@@ -82,6 +85,7 @@ sealed class JsonValue {
 data class JsonObject(
     val properties: Map<String, JsonValue>
 ) : JsonValue() {
+
     override fun accept(visitor: JsonVisitor) = visitor.visit(this)
 
     override fun toJsonString(): String {
@@ -111,7 +115,10 @@ data class JsonObject(
  * @property elements The list of JSON values in the array
  */
 data class JsonArray(val elements: List<JsonValue>) : JsonValue() {
-    override fun accept(visitor: JsonVisitor) = visitor.visit(this)
+
+    override fun accept(visitor: JsonVisitor) {
+        visitor.visit(this)
+    }
 
     override fun toJsonString(): String {
         return elements.joinToString(",", "[", "]") { it.toJsonString() }

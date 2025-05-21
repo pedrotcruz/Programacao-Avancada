@@ -2,6 +2,9 @@ package Testes
 
 import Model.*
 import Model.JsonValue.Companion.inferToJson
+import Visitors.DebugVisitor
+import Visitors.JsonPrintVisitor
+import Visitors.JsonValidator
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
@@ -97,5 +100,168 @@ class JsonInferenceTest {
             Any().inferToJson()
         }
         assertTrue(exception.message!!.contains("Only data classes can be converted"))
+    }
+
+    @Test
+    fun `test visitor propagation`() {
+        // Cria um JSON complexo com objetos, arrays e valores primitivos
+        val json = mapOf(
+            "name" to "Test",
+            "values" to listOf(1, 2, 3),
+            "nested" to mapOf(
+                "flag" to true,
+                "text" to "hello"
+            )
+        ).inferToJson()
+
+        val debugVisitor = DebugVisitor()
+        json.accept(debugVisitor) // Inicia a visita
+
+        val expectedLog = listOf(
+            "Visit Object (keys: [name, values, nested])",
+            "Visit String: \"Test\"",
+            "Visit Array (size: 3)",
+            "Visit Number: 1",
+            "Visit Number: 2",
+            "Visit Number: 3",
+            "Visit Object (keys: [flag, text])",
+            "Visit Boolean: true",
+            "Visit String: \"hello\""
+        )
+
+        assertEquals(expectedLog, debugVisitor.getLog())
+    }
+
+    @Test
+    fun `test nested arrays`() {
+        val json = listOf(
+            listOf(1, "a"),
+            listOf(true, null)
+        ).inferToJson()
+
+        val debugVisitor = DebugVisitor()
+        json.accept(debugVisitor)
+
+        val expectedLog = listOf(
+            "Visit Array (size: 2)",
+            "Visit Array (size: 2)",
+            "Visit Number: 1",
+            "Visit String: \"a\"",
+            "Visit Array (size: 2)",
+            "Visit Boolean: true",
+            "Visit Null"
+        )
+        assertEquals(expectedLog, debugVisitor.getLog())
+    }
+
+    @Test
+    fun `test objects in array`() {
+        val json = listOf(
+            mapOf("key" to 1),
+            mapOf("key" to 2)
+        ).inferToJson()
+
+        val debugVisitor = DebugVisitor()
+        json.accept(debugVisitor)
+
+        val expectedLog = listOf(
+            "Visit Array (size: 2)",
+            "Visit Object (keys: [key])",
+            "Visit Number: 1",
+            "Visit Object (keys: [key])",
+            "Visit Number: 2"
+        )
+        assertEquals(expectedLog, debugVisitor.getLog())
+    }
+
+    @Test
+    fun `test empty structures`() {
+        val json = mapOf(
+            "emptyArray" to emptyList<Any>(),
+            "emptyObject" to mapOf<String, Any>()
+        ).inferToJson()
+
+        val debugVisitor = DebugVisitor()
+        json.accept(debugVisitor)
+
+        val expectedLog = listOf(
+            "Visit Object (keys: [emptyArray, emptyObject])",
+            "Visit Array (size: 0)",
+            "Visit Object (keys: [])"
+        )
+        assertEquals(expectedLog, debugVisitor.getLog())
+    }
+
+    @Test
+    fun `test null values`() {
+        val json = mapOf(
+            "key" to null,
+            "arrayWithNull" to listOf(1, null)
+        ).inferToJson()
+
+        val debugVisitor = DebugVisitor()
+        json.accept(debugVisitor)
+
+        val expectedLog = listOf(
+            "Visit Object (keys: [key, arrayWithNull])",
+            "Visit Null",
+            "Visit Array (size: 2)",
+            "Visit Number: 1",
+            "Visit Null"
+        )
+        assertEquals(expectedLog, debugVisitor.getLog())
+    }
+
+
+
+    @Test
+    fun `test print visitor output`() {
+        val json = listOf(mapOf("key" to "value")).inferToJson()
+        val printVisitor = JsonPrintVisitor()
+        json.accept(printVisitor)
+
+        // Capture a saída (usando `SystemOutRule` ou similar)
+        // Verifique se contém quebras de linha e indentação esperadas.
+    }
+
+    @Test
+    fun `test duplicate keys in different objects`() {
+        val json = mapOf(
+            "obj1" to mapOf("key" to 1),
+            "obj2" to mapOf("key" to 2)  // Mesma chave, mas em objetos diferentes
+        ).inferToJson()
+
+        val validator = JsonValidator()
+        json.accept(validator)
+
+        assertTrue(validator.isValid())  // Não deve haver erros
+    }
+
+    @Test
+    fun `test duplicate keys in different objects are allowed`() {
+        val json = mapOf(
+            "obj1" to mapOf("key" to 1),
+            "obj2" to mapOf("key" to 2)  // Mesma chave, mas em objetos diferentes
+        ).inferToJson()
+
+        val validator = JsonValidator()
+        json.accept(validator)
+
+        assertTrue(validator.isValid())  // Não deve haver erros
+    }
+
+    @Test
+    fun `test duplicate keys in different objects are ignored`() {
+        val json = JsonObject(
+            mapOf(
+                "obj1" to JsonObject(mapOf("key" to JsonNumber(1))),
+                "obj2" to JsonObject(mapOf("key" to JsonNumber(2)))
+            )
+        )
+
+        val validator = JsonValidator()
+        json.accept(validator)
+
+        assertTrue(validator.isValid()) // Não deve reportar erro
     }
 }
