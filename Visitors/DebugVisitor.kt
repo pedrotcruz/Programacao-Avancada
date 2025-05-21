@@ -9,6 +9,10 @@ import Model.*
 class DebugVisitor : JsonVisitor {
     private val log = mutableListOf<String>()
 
+    /**
+     * Gets the complete visit log
+     * @return List of log messages in visitation order
+     */
     fun getLog(): List<String> = log.toList()
 
     override fun visit(obj: JsonObject) {

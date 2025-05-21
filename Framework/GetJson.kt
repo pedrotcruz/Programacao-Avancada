@@ -9,6 +9,16 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberFunctions
 
+/**
+ * Main framework class for handling HTTP GET endpoints that return JSON.
+ *
+ * @property controllers Vararg of REST controller instances to register
+ *
+ * Example:
+ * ```
+ * GetJson(MyController()).start(8080)
+ * ```
+ */
 class GetJson(private vararg val controllers: Any) {
     private val endpoints = mutableListOf<Endpoint>()
 
@@ -16,6 +26,10 @@ class GetJson(private vararg val controllers: Any) {
         controllers.forEach { registerController(it) }
     }
 
+    /**
+     * Registers all endpoints from a controller class
+     * @param controller The controller instance to register
+     */
     private fun registerController(controller: Any) {
         val controllerClass = controller::class
         val basePath = controllerClass.findAnnotation<RestController>()?.path ?: ""
@@ -33,6 +47,10 @@ class GetJson(private vararg val controllers: Any) {
         }
     }
 
+    /**
+     * Starts the HTTP server on specified port
+     * @param port The port to listen on
+     */
     fun start(port: Int) {
         ServerSocket(port).use { server ->
             while (true) {
@@ -43,6 +61,10 @@ class GetJson(private vararg val controllers: Any) {
         }
     }
 
+    /**
+     * Handles an incoming HTTP request
+     * @param client The connected client socket
+     */
     private fun handleRequest(client: Socket) {
         try {
             val input = client.getInputStream().bufferedReader()
@@ -73,6 +95,11 @@ class GetJson(private vararg val controllers: Any) {
         }
     }
 
+    /**
+     * Parses a full path with query parameters into path and parameters map
+     * @param fullPath The full request path including query parameters
+     * @return Pair of (path without query, map of query parameters)
+     */
     private fun parsePathAndQuery(fullPath: String): Pair<String, Map<String, String>> {
         val parts = fullPath.split("?")
         val path = parts[0]
@@ -87,6 +114,11 @@ class GetJson(private vararg val controllers: Any) {
         return path to queryParams
     }
 
+    /**
+     * Finds a matching endpoint for the given request path
+     * @param path The request path to match
+     * @return Endpoint if found, null otherwise
+     */
     private fun findEndpoint(path: String): Endpoint? {
         return endpoints.find { endpoint ->
             val endpointParts = endpoint.path.split("/")
@@ -99,6 +131,13 @@ class GetJson(private vararg val controllers: Any) {
         }
     }
 
+    /**
+     * Invokes an endpoint method with extracted parameters
+     * @param endpoint The endpoint to invoke
+     * @param queryParams Map of query parameters
+     * @return The result of the method call
+     * @throws IllegalArgumentException if parameters are invalid
+     */
     private fun invokeEndpoint(endpoint: Endpoint, queryParams: Map<String, String>): Any? {
         val requestPath = endpoint.path // Adicione esta linha para obter o caminho completo
         val args = endpoint.method.parameters.mapNotNull { param ->
@@ -128,12 +167,25 @@ class GetJson(private vararg val controllers: Any) {
         return endpoint.method.call(endpoint.instance, *args.toTypedArray())
     }
 
+    /**
+     * Extracts a path parameter value from the endpoint path
+     * @param endpointPath The endpoint path template
+     * @param paramName The parameter name to extract
+     * @return The extracted parameter value or null if not found
+     */
     private fun extractPathParam(endpointPath: String, paramName: String): String? {
         val pattern = "\\($paramName\\)".toRegex()
         val match = pattern.find(endpointPath)
         return match?.value?.removeSurrounding("(", ")")
     }
 
+    /**
+     * Converts a string parameter to the required type
+     * @param value The string value to convert
+     * @param type The target Kotlin type
+     * @return The converted value
+     * @throws IllegalArgumentException for unsupported or invalid types
+     */
     private fun convertParam(value: String, type: KType): Any {
         return when (type.classifier) {
             Int::class -> value.toIntOrNull() ?: throw IllegalArgumentException("Invalid Int value")
@@ -145,6 +197,11 @@ class GetJson(private vararg val controllers: Any) {
         }
     }
 
+    /**
+     * Sends an HTTP response to the client
+     * @param client The client socket to send response to
+     * @param response The HTTP response to send
+     */
     private fun sendResponse(client: Socket, response: HttpResponse) {
         val output = client.getOutputStream().bufferedWriter()
         output.apply {
@@ -155,20 +212,14 @@ class GetJson(private vararg val controllers: Any) {
             flush()
         }
     }
-
-    private fun extractPathParam(endpointPath: String, paramName: String, requestPath: String): String? {
-        val endpointParts = endpointPath.split("/")
-        val requestParts = requestPath.split("/")
-
-        endpointParts.forEachIndexed { index, part ->
-            if (part == "($paramName)") {
-                return requestParts.getOrNull(index)
-            }
-        }
-        return null
-    }
 }
 
+/**
+ * Represents a registered endpoint
+ * @property path The full endpoint path
+ * @property method The reflected function to call
+ * @property instance The controller instance containing the method
+ */
 data class Endpoint(
     val path: String,
     val method: KFunction<*>,

@@ -3,7 +3,10 @@ package Framework
 import Model.JsonValue
 
 /**
- * Wrapper for HTTP responses
+ * Represents an HTTP response
+ * @property status HTTP status code
+ * @property body JSON response body
+ * @property headers Map of HTTP headers (defaults to JSON Content-Type)
  */
 data class HttpResponse(
     val status: Int,

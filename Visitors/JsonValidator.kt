@@ -5,13 +5,7 @@ import Model.*
 /**
  * Visitor that validates JSON structure by checking for:
  * - Empty keys in objects
- *
- * Usage:
- * val validator = JsonValidator()
- * json.accept(validator)
- * if (!validator.isValid()) {
- *     println(validator.getErrors())
- * }
+ * - Uniform array types (optional)
  */
 class JsonValidator : JsonVisitor {
     private val errors = mutableListOf<String>()
