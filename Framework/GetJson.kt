@@ -13,12 +13,8 @@ import kotlin.reflect.full.memberFunctions
  * Main framework class for handling HTTP GET endpoints that return JSON.
  *
  * @property controllers Vararg of REST controller instances to register
- *
- * Example:
- * ```
- * GetJson(MyController()).start(8080)
- * ```
  */
+
 class GetJson(private vararg val controllers: Any) {
     private val endpoints = mutableListOf<Endpoint>()
 
@@ -29,6 +25,8 @@ class GetJson(private vararg val controllers: Any) {
     /**
      * Registers all endpoints from a controller class
      * @param controller The controller instance to register
+     * @RestController: Defines the path prefix for all routes in a controller.
+     * @GetMapping: Specifies the relative path of each endpoint.
      */
     private fun registerController(controller: Any) {
         val controllerClass = controller::class
@@ -139,7 +137,7 @@ class GetJson(private vararg val controllers: Any) {
      * @throws IllegalArgumentException if parameters are invalid
      */
     private fun invokeEndpoint(endpoint: Endpoint, queryParams: Map<String, String>): Any? {
-        val requestPath = endpoint.path // Adicione esta linha para obter o caminho completo
+        val requestPath = endpoint.path
         val args = endpoint.method.parameters.mapNotNull { param ->
             when {
                 param.findAnnotation<Path>() != null -> {

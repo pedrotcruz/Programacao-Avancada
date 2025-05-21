@@ -113,7 +113,7 @@ class CourseController {
     @GetMapping("info")
     fun getCourseInfo() = mapOf(
         "version" to "1.0",
-        "author" to "Seu Nome"
+        "author" to "Pedro Cruz"
     )
 }
 
